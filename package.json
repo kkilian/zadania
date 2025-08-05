@@ -1,0 +1,12 @@
+{
+  "name": "zadania-app",
+  "version": "1.0.0",
+  "description": "Interactive step-by-step math problem solver",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'Static site, no build needed'"
+  },
+  "keywords": ["math", "education", "interactive"],
+  "author": "",
+  "license": "MIT"
+}

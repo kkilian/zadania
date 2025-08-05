@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Mechanizm Odkrywania Kroków</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+    <style>
+        /* Font smoothing */
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Additional styles for elements not covered by Tailwind */
+        .step-glow-yellow {
+            box-shadow: 0 0 40px rgba(234, 179, 8, 0.15);
+        }
+        
+        .hint-glow {
+            box-shadow: inset 0 0 20px rgba(234, 179, 8, 0.08);
+        }
+        
+        /* Ensure math renders properly */
+        .katex-display {
+            margin: 0;
+        }
+        
+        /* Prevent layout shifts */
+        .step-inner {
+            min-height: 120px;
+            will-change: box-shadow;
+        }
+        
+        .step-glow {
+            will-change: opacity;
+        }
+        
+        .expression-box, .hint-box {
+            will-change: opacity;
+        }
+        
+        /* Box shadow instead of ring */
+        .shadow-ring-yellow {
+            box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.3);
+        }
+        
+        .shadow-ring-blue {
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        
+        /* Transition animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* Smooth visibility transitions */
+        .content-hidden {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease-out;
+            will-change: opacity, max-height, transform;
+        }
+        
+        .content-visible {
+            opacity: 1;
+            max-height: 500px;
+            transform: translateY(0);
+            transition: all 0.2s ease-in;
+            will-change: opacity, max-height, transform;
+        }
+        
+        /* Prevent layout shifts */
+        .step {
+            contain: layout;
+            will-change: opacity;
+        }
+        
+        .step-inner {
+            min-height: 120px;
+            contain: paint;
+        }
+        
+        /* Disable text selection during animations */
+        .step.animating {
+            user-select: none;
+        }
+        
+        /* Force GPU acceleration */
+        .step-glow, .hint-box, .expression-box, .explanation-box, .feedback-buttons, .click-prompt {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen">
+    <div class="max-w-4xl mx-auto px-8 py-8">
+        <!-- Header similar to UniversalSolutionTracker -->
+        <div class="sticky top-0 z-40 bg-black border-b border-gray-800 -mx-8 px-8 pb-6 mb-8">
+            <div class="mb-2">
+                <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    RÓWNANIA KWADRATOWE
+                </span>
+                <span class="text-xs text-gray-600 font-mono ml-4">
+                    demo_problem_1
+                </span>
+            </div>
+            
+            <h1 class="text-2xl font-bold text-white leading-relaxed">
+                <span class="math-content">Rozwiąż równanie: 2x^2 - 8x + 6 = 0</span>
+            </h1>
+        </div>
+        
+        <!-- Completed view - shows when all steps are done -->
+        <div id="completed-view" class="hidden">
+            <div class="bg-gray-950/50 border border-gray-800/50 rounded-xl p-8 mb-8">
+                <h2 class="text-xl font-bold text-white mb-8">Pełne rozwiązanie:</h2>
+                <div class="space-y-6">
+                    <!-- Solution table -->
+                    <div id="solution-table" class="space-y-6">
+                        <!-- Steps will be inserted here -->
+                    </div>
+                </div>
+                
+                <!-- Back button to steps view -->
+                <div class="mt-8 pt-6 border-t border-gray-800/50">
+                    <button onclick="showStepsView()" 
+                            class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 15l-6-5 6-5" />
+                        </svg>
+                        Powrót do kroków
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Individual steps view -->
+        <div id="steps-view" class="space-y-8">
+            <!-- Krok 1 -->
+            <article class="step relative cursor-pointer" data-step="0">
+                <!-- Yellow glow background -->
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0 pointer-events-none transition-opacity duration-300"></div>
+                
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                    <div class="flex items-start justify-between">
+                        <!-- Step checkbox component -->
+                        <div class="flex items-center gap-4">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                                <!-- Uncompleted state -->
+                                <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
+                                    <span class="text-xs text-gray-500 font-medium">1</span>
+                                </div>
+                                <!-- Completed state (hidden by default) -->
+                                <div class="completed-checkbox hidden">
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
+                                            <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-300">Krok 1</span>
+                        </div>
+                    </div>
+                    
+                    <div class="pl-10 space-y-4">
+                        <!-- Hint -->
+                        <div class="hint-box content-hidden relative">
+                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
+                                <p class="text-sm text-yellow-500/80 leading-relaxed">
+                                    Czy możesz uprościć równanie dzieląc wszystkie współczynniki przez wspólny dzielnik?
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Expression -->
+                        <div class="expression-box content-hidden">
+                            <div class="text-xl text-white font-medium">
+                                <span class="math block">2x^2 - 8x + 6 = 0 \quad /:2</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Explanation -->
+                        <div class="explanation-box text-sm text-gray-400 leading-relaxed content-hidden">
+                            Dzielimy obie strony równania przez 2, aby uprościć współczynniki.
+                        </div>
+                        
+                        <!-- Feedback buttons -->
+                        <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
+                            <button onclick="handleFeedback(0, 'self', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                Zrobiłem sam
+                            </button>
+                            <button onclick="handleFeedback(0, 'help', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                Potrzebowałem pomocy
+                            </button>
+                        </div>
+                        
+                        <!-- Click prompt -->
+                        <div class="click-prompt text-sm text-gray-600 content-visible">
+                            Kliknij aby odkryć wskazówkę
+                        </div>
+                    </div>
+                </div>
+            </article>
+            
+            <!-- Krok 2 -->
+            <article class="step relative cursor-pointer" data-step="1">
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                                <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
+                                    <span class="text-xs text-gray-500 font-medium">2</span>
+                                </div>
+                                <div class="completed-checkbox hidden">
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
+                                            <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-300">Krok 2</span>
+                        </div>
+                    </div>
+                    
+                    <div class="pl-10 space-y-4">
+                        <div class="hint-box content-hidden relative">
+                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
+                                <p class="text-sm text-yellow-500/80 leading-relaxed">
+                                    Mamy równanie kwadratowe w postaci ax² + bx + c = 0. Jakie są wartości współczynników?
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="expression-box content-hidden">
+                            <div class="text-xl text-white font-medium">
+                                <span class="math block">x^2 - 4x + 3 = 0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="explanation-box text-sm text-gray-400 leading-relaxed content-hidden">
+                            Otrzymujemy równanie w postaci ax² + bx + c = 0, gdzie a = 1, b = -4, c = 3.
+                        </div>
+                        
+                        <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
+                            <button onclick="handleFeedback(1, 'self', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                Zrobiłem sam
+                            </button>
+                            <button onclick="handleFeedback(1, 'help', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                Potrzebowałem pomocy
+                            </button>
+                        </div>
+                        
+                        <div class="click-prompt text-sm text-gray-600 content-visible">
+                            Kliknij aby odkryć wskazówkę
+                        </div>
+                    </div>
+                </div>
+            </article>
+            
+            <!-- Krok 3 -->
+            <article class="step relative cursor-pointer" data-step="2">
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                                <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
+                                    <span class="text-xs text-gray-500 font-medium">3</span>
+                                </div>
+                                <div class="completed-checkbox hidden">
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
+                                            <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-300">Krok 3</span>
+                        </div>
+                    </div>
+                    
+                    <div class="pl-10 space-y-4">
+                        <div class="hint-box content-hidden relative">
+                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
+                                <p class="text-sm text-yellow-500/80 leading-relaxed">
+                                    Aby rozwiązać równanie kwadratowe, musimy najpierw obliczyć deltę. Pamiętasz wzór?
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="expression-box content-hidden">
+                            <div class="text-xl text-white font-medium">
+                                <span class="math block">\Delta = b^2 - 4ac = (-4)^2 - 4 \cdot 1 \cdot 3 = 16 - 12 = 4</span>
+                            </div>
+                        </div>
+                        
+                        <div class="explanation-box text-sm text-gray-400 leading-relaxed content-hidden">
+                            Obliczamy deltę (wyróżnik równania kwadratowego). Delta dodatnia oznacza dwa rozwiązania rzeczywiste.
+                        </div>
+                        
+                        <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
+                            <button onclick="handleFeedback(2, 'self', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                Zrobiłem sam
+                            </button>
+                            <button onclick="handleFeedback(2, 'help', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                Potrzebowałem pomocy
+                            </button>
+                        </div>
+                        
+                        <div class="click-prompt text-sm text-gray-600 content-visible">
+                            Kliknij aby odkryć wskazówkę
+                        </div>
+                    </div>
+                </div>
+            </article>
+            
+            <!-- Krok 4 -->
+            <article class="step relative cursor-pointer" data-step="3">
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                                <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
+                                    <span class="text-xs text-gray-500 font-medium">4</span>
+                                </div>
+                                <div class="completed-checkbox hidden">
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
+                                            <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-300">Krok 4</span>
+                        </div>
+                    </div>
+                    
+                    <div class="pl-10 space-y-4">
+                        <div class="hint-box content-hidden relative">
+                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
+                                <p class="text-sm text-yellow-500/80 leading-relaxed">
+                                    Mając deltę, możemy użyć wzoru na pierwiastki równania kwadratowego. Jaki to wzór?
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="expression-box content-hidden">
+                            <div class="text-xl text-white font-medium">
+                                <span class="math block">x = \frac{-b \pm \sqrt{\Delta}}{2a} = \frac{4 \pm \sqrt{4}}{2} = \frac{4 \pm 2}{2}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="explanation-box text-sm text-gray-400 leading-relaxed content-hidden">
+                            Stosujemy wzór na pierwiastki równania kwadratowego.
+                        </div>
+                        
+                        <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
+                            <button onclick="handleFeedback(3, 'self', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                Zrobiłem sam
+                            </button>
+                            <button onclick="handleFeedback(3, 'help', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                Potrzebowałem pomocy
+                            </button>
+                        </div>
+                        
+                        <div class="click-prompt text-sm text-gray-600 content-visible">
+                            Kliknij aby odkryć wskazówkę
+                        </div>
+                    </div>
+                </div>
+            </article>
+            
+            <!-- Krok 5 -->
+            <article class="step relative cursor-pointer" data-step="4">
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                                <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
+                                    <span class="text-xs text-gray-500 font-medium">5</span>
+                                </div>
+                                <div class="completed-checkbox hidden">
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
+                                            <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-300">Krok 5</span>
+                        </div>
+                    </div>
+                    
+                    <div class="pl-10 space-y-4">
+                        <div class="hint-box content-hidden relative">
+                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
+                                <p class="text-sm text-yellow-500/80 leading-relaxed">
+                                    Teraz oblicz osobno każdy pierwiastek używając znaku + i znaku -.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="expression-box content-hidden">
+                            <div class="text-xl text-white font-medium">
+                                <span class="math block">x_1 = \frac{4 + 2}{2} = 3, \quad x_2 = \frac{4 - 2}{2} = 1</span>
+                            </div>
+                        </div>
+                        
+                        <div class="explanation-box text-sm text-gray-400 leading-relaxed content-hidden">
+                            Obliczamy oba pierwiastki: x₁ = 3 oraz x₂ = 1.
+                        </div>
+                        
+                        <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
+                            <button onclick="handleFeedback(4, 'self', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                Zrobiłem sam
+                            </button>
+                            <button onclick="handleFeedback(4, 'help', event)" 
+                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                Potrzebowałem pomocy
+                            </button>
+                        </div>
+                        
+                        <div class="click-prompt text-sm text-gray-600 content-visible">
+                            Kliknij aby odkryć wskazówkę
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+        
+        </div>
+        
+        <!-- Actions -->
+        <div id="actions" class="mt-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <button onclick="resetAll()"
+                        class="text-sm text-gray-400 hover:text-white transition-colors">
+                    Resetuj
+                </button>
+            </div>
+            
+            <button onclick="markAllCompleted()"
+                    class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-black bg-white hover:bg-gray-100 rounded-full transition-all">
+                Oznacz wszystkie jako ukończone
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 20 20">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 5l6 5-6 5" />
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    
+    <script>
+        // Stan aplikacji
+        const state = {
+            hintShown: new Set(),
+            uncovered: new Set(),
+            highlighted: new Set(),
+            completed: new Set(),
+            feedbackGiven: {}
+        };
+        
+        // Store step data for completed view
+        const stepData = [
+            {
+                expression: "2x^2 - 8x + 6 = 0 \\quad /:2",
+                explanation: "Dzielimy obie strony równania przez 2, aby uprościć współczynniki."
+            },
+            {
+                expression: "x^2 - 4x + 3 = 0",
+                explanation: "Otrzymujemy równanie w postaci ax² + bx + c = 0, gdzie a = 1, b = -4, c = 3."
+            },
+            {
+                expression: "\\Delta = b^2 - 4ac = (-4)^2 - 4 \\cdot 1 \\cdot 3 = 16 - 12 = 4",
+                explanation: "Obliczamy deltę (wyróżnik równania kwadratowego). Delta dodatnia oznacza dwa rozwiązania rzeczywiste."
+            },
+            {
+                expression: "x = \\frac{-b \\pm \\sqrt{\\Delta}}{2a} = \\frac{4 \\pm \\sqrt{4}}{2} = \\frac{4 \\pm 2}{2}",
+                explanation: "Stosujemy wzór na pierwiastki równania kwadratowego."
+            },
+            {
+                expression: "x_1 = \\frac{4 + 2}{2} = 3, \\quad x_2 = \\frac{4 - 2}{2} = 1",
+                explanation: "Obliczamy oba pierwiastki: x₁ = 3 oraz x₂ = 1."
+            }
+        ];
+        
+        // Renderuj matematykę za pomocą KaTeX
+        function renderMath() {
+            document.querySelectorAll('.math').forEach(elem => {
+                katex.render(elem.textContent, elem, {
+                    throwOnError: false,
+                    displayMode: elem.classList.contains('block')
+                });
+            });
+            
+            // Render math in header
+            document.querySelectorAll('.math-content').forEach(elem => {
+                const text = elem.textContent;
+                elem.innerHTML = text.replace(/([^:]+:)(.+)/, '$1 <span class="math">$2</span>');
+                const mathSpan = elem.querySelector('.math');
+                if (mathSpan) {
+                    katex.render(mathSpan.textContent, mathSpan, {
+                        throwOnError: false
+                    });
+                }
+            });
+        }
+        
+        // Check if all steps are completed
+        function checkAllCompleted() {
+            const totalSteps = document.querySelectorAll('.step').length;
+            const completedCount = state.completed.size;
+            
+            if (completedCount === totalSteps) {
+                showCompletedView();
+            } else {
+                showStepsView();
+            }
+        }
+        
+        // Show the completed view with all steps in table format
+        function showCompletedView() {
+            const stepsView = document.getElementById('steps-view');
+            const completedView = document.getElementById('completed-view');
+            const solutionTable = document.getElementById('solution-table');
+            
+            // Build the table content with better layout
+            let tableHTML = '';
+            stepData.forEach((step, index) => {
+                tableHTML += `
+                    <div class="grid grid-cols-[auto,1fr] gap-8 pb-6 ${index < stepData.length - 1 ? 'border-b border-gray-800/50' : ''}">
+                        <div class="text-gray-500 font-medium whitespace-nowrap pt-1">Krok ${index + 1}:</div>
+                        <div class="space-y-4">
+                            <div class="text-white font-medium text-lg math">${step.expression}</div>
+                            <div class="flex items-start gap-4">
+                                <div class="text-gray-600 flex-shrink-0 pt-0.5">→</div>
+                                <div class="text-gray-400 text-sm leading-relaxed">${step.explanation}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            solutionTable.innerHTML = tableHTML;
+            
+            // Animate transition
+            stepsView.classList.add('fade-out');
+            setTimeout(() => {
+                stepsView.classList.add('hidden');
+                completedView.classList.remove('hidden');
+                completedView.classList.add('fade-in');
+                
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    completedView.classList.remove('fade-in');
+                }, 500);
+            }, 300);
+            
+            // Re-render math in the table
+            completedView.querySelectorAll('.math').forEach(elem => {
+                katex.render(elem.textContent, elem, {
+                    throwOnError: false,
+                    displayMode: false
+                });
+            });
+        }
+        
+        // Show the individual steps view
+        function showStepsView() {
+            const stepsView = document.getElementById('steps-view');
+            const completedView = document.getElementById('completed-view');
+            
+            // Animate transition back
+            completedView.classList.add('fade-out');
+            setTimeout(() => {
+                completedView.classList.add('hidden');
+                completedView.classList.remove('fade-out');
+                stepsView.classList.remove('hidden', 'fade-out');
+                stepsView.classList.add('fade-in');
+                
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    stepsView.classList.remove('fade-in');
+                }, 500);
+            }, 300);
+        }
+        
+        
+        // Aktualizuj UI dla kroku
+        function updateStepUI(stepElement, stepIndex) {
+            const isHintShown = state.hintShown.has(stepIndex);
+            const isUncovered = state.uncovered.has(stepIndex);
+            const isHighlighted = state.highlighted.has(stepIndex);
+            const isCompleted = state.completed.has(stepIndex);
+            
+            // Update yellow glow with requestAnimationFrame
+            const glow = stepElement.querySelector('.step-glow');
+            requestAnimationFrame(() => {
+                glow.style.opacity = isHintShown && !isUncovered ? '1' : '0';
+            });
+            
+            // Update inner border using box-shadow
+            const inner = stepElement.querySelector('.step-inner');
+            inner.classList.remove('shadow-ring-yellow', 'shadow-ring-blue');
+            
+            if (isHintShown && !isUncovered) {
+                inner.classList.add('shadow-ring-yellow');
+            } else if (isHighlighted) {
+                inner.classList.add('shadow-ring-blue');
+            }
+            
+            // Update opacity for completed
+            requestAnimationFrame(() => {
+                stepElement.style.opacity = isCompleted ? '0.4' : '1';
+            });
+            
+            // Update checkbox
+            const uncompleted = stepElement.querySelector('.uncompleted-checkbox');
+            const completed = stepElement.querySelector('.completed-checkbox');
+            if (isCompleted) {
+                uncompleted.style.display = 'none';
+                completed.style.display = 'block';
+            } else {
+                uncompleted.style.display = 'flex';
+                completed.style.display = 'none';
+            }
+            
+            // Update content visibility
+            const hintBox = stepElement.querySelector('.hint-box');
+            const expressionBox = stepElement.querySelector('.expression-box');
+            const explanationBox = stepElement.querySelector('.explanation-box');
+            const feedbackButtons = stepElement.querySelector('.feedback-buttons');
+            const clickPrompt = stepElement.querySelector('.click-prompt');
+            
+            // Show/hide hint with smooth transition
+            if (isHintShown && !isUncovered) {
+                hintBox.classList.add('content-visible');
+                hintBox.classList.remove('content-hidden');
+            } else {
+                hintBox.classList.add('content-hidden');
+                hintBox.classList.remove('content-visible');
+            }
+            
+            // Show/hide expression and explanation
+            if (isUncovered) {
+                expressionBox.classList.add('content-visible');
+                expressionBox.classList.remove('content-hidden');
+                explanationBox.classList.add('content-visible');
+                explanationBox.classList.remove('content-hidden');
+                feedbackButtons.classList.add('content-visible');
+                feedbackButtons.classList.remove('content-hidden');
+            } else {
+                expressionBox.classList.add('content-hidden');
+                expressionBox.classList.remove('content-visible');
+                explanationBox.classList.add('content-hidden');
+                explanationBox.classList.remove('content-visible');
+                feedbackButtons.classList.add('content-hidden');
+                feedbackButtons.classList.remove('content-visible');
+            }
+            
+            // Update click prompt
+            if (isHintShown || isUncovered) {
+                clickPrompt.classList.add('content-hidden');
+                clickPrompt.classList.remove('content-visible');
+            } else {
+                clickPrompt.classList.add('content-visible');
+                clickPrompt.classList.remove('content-hidden');
+                clickPrompt.textContent = 'Kliknij aby odkryć wskazówkę';
+            }
+        }
+        
+        // Prevent rapid clicks
+        let clickTimeout = null;
+        
+        // Obsługa kliknięcia na krok
+        function handleStepClick(stepElement, stepIndex) {
+            // Prevent rapid clicks
+            if (clickTimeout) return;
+            
+            stepElement.classList.add('animating');
+            clickTimeout = setTimeout(() => {
+                clickTimeout = null;
+                stepElement.classList.remove('animating');
+            }, 300);
+            // 1. kliknięcie: pokaż wskazówkę
+            if (!state.hintShown.has(stepIndex)) {
+                state.hintShown.add(stepIndex);
+            }
+            // 2. kliknięcie: odkryj wyrażenie i wyjaśnienie
+            else if (!state.uncovered.has(stepIndex)) {
+                state.uncovered.add(stepIndex);
+            }
+            // 3. kliknięcie: podświetl na niebiesko
+            else if (!state.highlighted.has(stepIndex)) {
+                state.highlighted.add(stepIndex);
+            }
+            // 4. kliknięcie: oznacz jako ukończone
+            else if (!state.completed.has(stepIndex)) {
+                state.completed.add(stepIndex);
+            }
+            // 5. kliknięcie: reset do stanu początkowego
+            else {
+                state.hintShown.delete(stepIndex);
+                state.uncovered.delete(stepIndex);
+                state.highlighted.delete(stepIndex);
+                state.completed.delete(stepIndex);
+                delete state.feedbackGiven[stepIndex];
+            }
+            
+            updateStepUI(stepElement, stepIndex);
+            checkAllCompleted();
+        }
+        
+        // Handle feedback button clicks
+        function handleFeedback(stepIndex, type, event) {
+            event.stopPropagation();
+            state.feedbackGiven[stepIndex] = type;
+            
+            // Update button styles
+            const step = document.querySelector(`[data-step="${stepIndex}"]`);
+            const buttons = step.querySelectorAll('.feedback-buttons button');
+            
+            buttons.forEach(button => {
+                if (button.textContent.includes('sam') && type === 'self') {
+                    button.classList.remove('bg-gray-900', 'text-gray-400', 'border-gray-800');
+                    button.classList.add('bg-blue-600', 'text-white', 'border-blue-500');
+                } else if (button.textContent.includes('pomocy') && type === 'help') {
+                    button.classList.remove('bg-gray-900', 'text-gray-400', 'border-gray-800');
+                    button.classList.add('bg-yellow-600', 'text-white', 'border-yellow-500');
+                } else {
+                    button.classList.add('bg-gray-900', 'text-gray-400', 'border-gray-800');
+                    button.classList.remove('bg-blue-600', 'bg-yellow-600', 'text-white', 'border-blue-500', 'border-yellow-500');
+                }
+            });
+        }
+        
+        // Reset wszystkich kroków
+        function resetAll() {
+            state.hintShown.clear();
+            state.uncovered.clear();
+            state.highlighted.clear();
+            state.completed.clear();
+            state.feedbackGiven = {};
+            
+            document.querySelectorAll('.step').forEach((step, index) => {
+                updateStepUI(step, index);
+                // Reset feedback buttons
+                const buttons = step.querySelectorAll('.feedback-buttons button');
+                buttons.forEach(button => {
+                    button.classList.add('bg-gray-900', 'text-gray-400', 'border-gray-800');
+                    button.classList.remove('bg-blue-600', 'bg-yellow-600', 'text-white', 'border-blue-500', 'border-yellow-500');
+                });
+            });
+            
+            checkAllCompleted();
+        }
+        
+        // Oznacz wszystkie jako ukończone
+        function markAllCompleted() {
+            document.querySelectorAll('.step').forEach((step, index) => {
+                state.hintShown.add(index);
+                state.uncovered.add(index);
+                state.highlighted.add(index);
+                state.completed.add(index);
+                updateStepUI(step, index);
+            });
+            
+            checkAllCompleted();
+        }
+        
+        // Inicjalizacja
+        document.addEventListener('DOMContentLoaded', () => {
+            // Renderuj matematykę
+            renderMath();
+            
+            // Dodaj event listeners do kroków
+            document.querySelectorAll('.step').forEach((step) => {
+                const stepIndex = parseInt(step.dataset.step);
+                step.addEventListener('click', (e) => {
+                    // Don't handle click if it's on a button
+                    if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                        handleStepClick(step, stepIndex);
+                    }
+                });
+            });
+            
+            // Początkowy stan
+            checkAllCompleted();
+        });
+    </script>
+</body>
+</html>
