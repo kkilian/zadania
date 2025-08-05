@@ -51,41 +51,15 @@
             box-shadow: 0 0 0 2px #3b82f6;
         }
         
-        /* Transition animations */
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
+        /* No animations - preventing page jumps */
         
-        .fade-out {
-            animation: fadeOut 0.3s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        
-        /* Smooth visibility transitions */
+        /* Smooth visibility transitions - simplified to prevent jumping */
         .content-hidden {
-            opacity: 0;
-            max-height: 0;
-            overflow: hidden;
-            transform: translateY(-10px);
-            transition: all 0.2s ease-out;
-            will-change: opacity, max-height, transform;
+            display: none;
         }
         
         .content-visible {
-            opacity: 1;
-            max-height: 500px;
-            transform: translateY(0);
-            transition: all 0.2s ease-in;
-            will-change: opacity, max-height, transform;
+            display: block;
         }
         
         /* Prevent layout shifts */
@@ -104,10 +78,9 @@
             user-select: none;
         }
         
-        /* Force GPU acceleration */
+        /* Simplified positioning */
         .step-glow, .hint-box, .expression-box, .explanation-box, .feedback-buttons, .click-prompt {
-            transform: translateZ(0);
-            backface-visibility: hidden;
+            position: relative;
         }
     </style>
 </head>
@@ -143,7 +116,7 @@
                 <!-- Back button to steps view -->
                 <div class="mt-8 pt-6 border-t border-gray-800/50">
                     <button onclick="showStepsView()" 
-                            class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                            class="text-sm text-gray-400 hover:text-white flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 20 20">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 15l-6-5 6-5" />
                         </svg>
@@ -158,20 +131,20 @@
             <!-- Krok 1 -->
             <article class="step relative cursor-pointer" data-step="0">
                 <!-- Yellow glow background -->
-                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0 pointer-events-none transition-opacity duration-300"></div>
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 rounded-2xl opacity-0 pointer-events-none"></div>
                 
-                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl bg-gray-950/50 border border-gray-800/50">
                     <div class="flex items-start justify-between">
                         <!-- Step checkbox component -->
                         <div class="flex items-center gap-4">
-                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center">
                                 <!-- Uncompleted state -->
                                 <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
                                     <span class="text-xs text-gray-500 font-medium">1</span>
                                 </div>
                                 <!-- Completed state (hidden by default) -->
                                 <div class="completed-checkbox hidden">
-                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full opacity-50"></div>
                                     <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                                         <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
                                             <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
@@ -186,7 +159,7 @@
                     <div class="pl-10 space-y-4">
                         <!-- Hint -->
                         <div class="hint-box content-hidden relative">
-                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="absolute inset-0 bg-yellow-500/10 rounded-lg"></div>
                             <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
                                 <p class="text-sm text-yellow-500/80 leading-relaxed">
                                     Czy możesz uprościć równanie dzieląc wszystkie współczynniki przez wspólny dzielnik?
@@ -209,11 +182,11 @@
                         <!-- Feedback buttons -->
                         <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
                             <button onclick="handleFeedback(0, 'self', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
                                 Zrobiłem sam
                             </button>
                             <button onclick="handleFeedback(0, 'help', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
                                 Potrzebowałem pomocy
                             </button>
                         </div>
@@ -228,17 +201,17 @@
             
             <!-- Krok 2 -->
             <article class="step relative cursor-pointer" data-step="1">
-                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 rounded-2xl opacity-0"></div>
                 
-                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl bg-gray-950/50 border border-gray-800/50">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-4">
-                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center">
                                 <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
                                     <span class="text-xs text-gray-500 font-medium">2</span>
                                 </div>
                                 <div class="completed-checkbox hidden">
-                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full opacity-50"></div>
                                     <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                                         <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
                                             <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
@@ -252,7 +225,7 @@
                     
                     <div class="pl-10 space-y-4">
                         <div class="hint-box content-hidden relative">
-                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="absolute inset-0 bg-yellow-500/10 rounded-lg"></div>
                             <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
                                 <p class="text-sm text-yellow-500/80 leading-relaxed">
                                     Mamy równanie kwadratowe w postaci ax² + bx + c = 0. Jakie są wartości współczynników?
@@ -272,11 +245,11 @@
                         
                         <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
                             <button onclick="handleFeedback(1, 'self', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
                                 Zrobiłem sam
                             </button>
                             <button onclick="handleFeedback(1, 'help', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
                                 Potrzebowałem pomocy
                             </button>
                         </div>
@@ -290,17 +263,17 @@
             
             <!-- Krok 3 -->
             <article class="step relative cursor-pointer" data-step="2">
-                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 rounded-2xl opacity-0"></div>
                 
-                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl bg-gray-950/50 border border-gray-800/50">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-4">
-                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center">
                                 <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
                                     <span class="text-xs text-gray-500 font-medium">3</span>
                                 </div>
                                 <div class="completed-checkbox hidden">
-                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full opacity-50"></div>
                                     <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                                         <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
                                             <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
@@ -314,7 +287,7 @@
                     
                     <div class="pl-10 space-y-4">
                         <div class="hint-box content-hidden relative">
-                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="absolute inset-0 bg-yellow-500/10 rounded-lg"></div>
                             <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
                                 <p class="text-sm text-yellow-500/80 leading-relaxed">
                                     Aby rozwiązać równanie kwadratowe, musimy najpierw obliczyć deltę. Pamiętasz wzór?
@@ -334,11 +307,11 @@
                         
                         <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
                             <button onclick="handleFeedback(2, 'self', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
                                 Zrobiłem sam
                             </button>
                             <button onclick="handleFeedback(2, 'help', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
                                 Potrzebowałem pomocy
                             </button>
                         </div>
@@ -352,17 +325,17 @@
             
             <!-- Krok 4 -->
             <article class="step relative cursor-pointer" data-step="3">
-                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 rounded-2xl opacity-0"></div>
                 
-                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl bg-gray-950/50 border border-gray-800/50">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-4">
-                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center">
                                 <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
                                     <span class="text-xs text-gray-500 font-medium">4</span>
                                 </div>
                                 <div class="completed-checkbox hidden">
-                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full opacity-50"></div>
                                     <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                                         <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
                                             <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
@@ -376,7 +349,7 @@
                     
                     <div class="pl-10 space-y-4">
                         <div class="hint-box content-hidden relative">
-                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="absolute inset-0 bg-yellow-500/10 rounded-lg"></div>
                             <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
                                 <p class="text-sm text-yellow-500/80 leading-relaxed">
                                     Mając deltę, możemy użyć wzoru na pierwiastki równania kwadratowego. Jaki to wzór?
@@ -396,11 +369,11 @@
                         
                         <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
                             <button onclick="handleFeedback(3, 'self', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
                                 Zrobiłem sam
                             </button>
                             <button onclick="handleFeedback(3, 'help', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
                                 Potrzebowałem pomocy
                             </button>
                         </div>
@@ -414,17 +387,17 @@
             
             <!-- Krok 5 -->
             <article class="step relative cursor-pointer" data-step="4">
-                <div class="step-glow absolute -inset-4 bg-yellow-500/10 blur-md rounded-2xl opacity-0"></div>
+                <div class="step-glow absolute -inset-4 bg-yellow-500/10 rounded-2xl opacity-0"></div>
                 
-                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl transition-colors duration-200 bg-gray-950/50 border border-gray-800/50">
+                <div class="step-inner relative space-y-6 p-6 -m-6 rounded-xl bg-gray-950/50 border border-gray-800/50">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-4">
-                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center transition-opacity duration-200">
+                            <div class="step-checkbox relative w-6 h-6 rounded-full flex items-center justify-center">
                                 <div class="uncompleted-checkbox w-6 h-6 border border-gray-800 rounded-full flex items-center justify-center">
                                     <span class="text-xs text-gray-500 font-medium">5</span>
                                 </div>
                                 <div class="completed-checkbox hidden">
-                                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-sm opacity-50"></div>
+                                    <div class="absolute inset-0 bg-blue-500 rounded-full opacity-50"></div>
                                     <div class="relative w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                                         <svg class="w-3 h-3 text-black" viewBox="0 0 12 12">
                                             <path fill="currentColor" d="M5 8.5l-2.5-2.5 1-1 1.5 1.5 3-3 1 1z"/>
@@ -438,7 +411,7 @@
                     
                     <div class="pl-10 space-y-4">
                         <div class="hint-box content-hidden relative">
-                            <div class="absolute inset-0 bg-yellow-500/10 blur-xl"></div>
+                            <div class="absolute inset-0 bg-yellow-500/10 rounded-lg"></div>
                             <div class="relative p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg hint-glow">
                                 <p class="text-sm text-yellow-500/80 leading-relaxed">
                                     Teraz oblicz osobno każdy pierwiastek używając znaku + i znaku -.
@@ -458,11 +431,11 @@
                         
                         <div class="feedback-buttons flex gap-2 mt-4 content-hidden">
                             <button onclick="handleFeedback(4, 'self', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-blue-600/50 hover:text-blue-400">
                                 Zrobiłem sam
                             </button>
                             <button onclick="handleFeedback(4, 'help', event)" 
-                                    class="px-4 py-2 text-sm font-medium rounded transition-all duration-200 bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
+                                    class="px-4 py-2 text-sm font-medium rounded bg-gray-900 text-gray-400 border border-gray-800 hover:border-yellow-600/50 hover:text-yellow-400">
                                 Potrzebowałem pomocy
                             </button>
                         </div>
@@ -590,18 +563,9 @@
             
             solutionTable.innerHTML = tableHTML;
             
-            // Animate transition
-            stepsView.classList.add('fade-out');
-            setTimeout(() => {
-                stepsView.classList.add('hidden');
-                completedView.classList.remove('hidden');
-                completedView.classList.add('fade-in');
-                
-                // Remove animation class after animation completes
-                setTimeout(() => {
-                    completedView.classList.remove('fade-in');
-                }, 500);
-            }, 300);
+            // Simple show/hide without animation
+            stepsView.classList.add('hidden');
+            completedView.classList.remove('hidden');
             
             // Re-render math in the table
             completedView.querySelectorAll('.math').forEach(elem => {
@@ -617,19 +581,9 @@
             const stepsView = document.getElementById('steps-view');
             const completedView = document.getElementById('completed-view');
             
-            // Animate transition back
-            completedView.classList.add('fade-out');
-            setTimeout(() => {
-                completedView.classList.add('hidden');
-                completedView.classList.remove('fade-out');
-                stepsView.classList.remove('hidden', 'fade-out');
-                stepsView.classList.add('fade-in');
-                
-                // Remove animation class after animation completes
-                setTimeout(() => {
-                    stepsView.classList.remove('fade-in');
-                }, 500);
-            }, 300);
+            // Simple show/hide without animation
+            completedView.classList.add('hidden');
+            stepsView.classList.remove('hidden');
         }
         
         
@@ -640,11 +594,9 @@
             const isHighlighted = state.highlighted.has(stepIndex);
             const isCompleted = state.completed.has(stepIndex);
             
-            // Update yellow glow with requestAnimationFrame
+            // Update yellow glow
             const glow = stepElement.querySelector('.step-glow');
-            requestAnimationFrame(() => {
-                glow.style.opacity = isHintShown && !isUncovered ? '1' : '0';
-            });
+            glow.style.opacity = isHintShown && !isUncovered ? '1' : '0';
             
             // Update inner border using box-shadow
             const inner = stepElement.querySelector('.step-inner');
@@ -657,9 +609,7 @@
             }
             
             // Update opacity for completed
-            requestAnimationFrame(() => {
-                stepElement.style.opacity = isCompleted ? '0.4' : '1';
-            });
+            stepElement.style.opacity = isCompleted ? '0.4' : '1';
             
             // Update checkbox
             const uncompleted = stepElement.querySelector('.uncompleted-checkbox');
@@ -716,19 +666,8 @@
             }
         }
         
-        // Prevent rapid clicks
-        let clickTimeout = null;
-        
         // Obsługa kliknięcia na krok
         function handleStepClick(stepElement, stepIndex) {
-            // Prevent rapid clicks
-            if (clickTimeout) return;
-            
-            stepElement.classList.add('animating');
-            clickTimeout = setTimeout(() => {
-                clickTimeout = null;
-                stepElement.classList.remove('animating');
-            }, 300);
             // 1. kliknięcie: pokaż wskazówkę
             if (!state.hintShown.has(stepIndex)) {
                 state.hintShown.add(stepIndex);
